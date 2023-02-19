@@ -30,7 +30,7 @@ library(ggthemes)
 
 Below are some important draft related tables I use to understand the draft's history & trades.
 
-```{r, warning = FALSE, message= FALSE, cache=TRUE}
+```{r, warning = FALSE, message= FALSE}
 # Import draft tables 
 trades <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/trades.csv")
 draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_picks.csv")
@@ -41,7 +41,6 @@ draft_picks%>%
 select(pfr_id, position)%>%
 filter(!is.na(pfr_id), position == 'QB')%>%
 unique() -> pfr_positions
-
 ```
 
 \newpage
@@ -142,6 +141,7 @@ dbWriteTable(con,"trade_value_base", trade_value_base, overwrite = TRUE)
 dbWriteTable(con,"information", information, overwrite = TRUE)
 dbWriteTable(con,"picks", picks, overwrite = TRUE)
 dbWriteTable(con,"draft_picks", draft_picks, overwrite = TRUE)
+
 ```
 
 \newpage
@@ -178,7 +178,8 @@ summary_set%>%
 head()%>%
 kable()%>%
 kable_classic(full_width = F, html_font = "Cambria")%>%
-kable_styling(latex_options = 'hold_position')
+kable_styling(latex_options = 'hold_position') 
+
 ```
 
 
@@ -220,12 +221,20 @@ geom_smooth(se= FALSE,
 theme_wsj()+
 facet_wrap(. ~ chart_type, scale = 'free')+
 labs(x = '\nPick #',  y= 'Expected % received\n', title = 'Pick # vs Draft value received')+
-        theme(legend.position = c(0.85, 0.25), 
-              legend.background = element_rect(fill = "white", colour = NA),
-              text = element_text(size=10),
-              plot.title = element_text(size = 15),
-              axis.title=element_text(size=15),
-              legend.title = element_text(size = 10))+
+        # theme(legend.position = c(0.85, 0.25), 
+        #       legend.background = element_rect(fill = "white", colour = NA),
+        #       text = element_text(size=10),
+        #       plot.title = element_text(size = 15),
+        #       axis.title=element_text(size=15),
+        #       legend.title = element_text(size = 10))+
+  
+  theme(legend.position = c(0.85, 0.25),
+legend.background = element_rect(fill = "white", colour = NA),
+  plot.title = element_text(size = 15),
+text = element_text(size=10),
+axis.title=element_text(size=20),
+strip.text = element_text(size = 11),
+legend.title = element_blank())+
  scale_y_continuous(labels = scales::percent)
 ```
 
@@ -254,10 +263,11 @@ labs(x = '\nPick #',
      caption = '')+ 
         theme(legend.position = c(0.85, 0.25), 
               legend.background = element_rect(fill = "white", colour = NA),
-              legend.title = element_blank(),
               text = element_text(size=20),
               axis.title=element_text(size=30),
-              strip.text = element_text(size = 20))+
+              legend.key.size = unit(0.1, "cm")),
+              strip.text = element_text(size = 20))
+    theme(legend. title = element_blank()
 ```
 
 
