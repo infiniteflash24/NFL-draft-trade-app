@@ -1,2 +1,2 @@
 # NFL-draft-trade-app
- NFL-draft-trade-app prototype
+To use this application, you need to download R-Studio and the relevant packages.
