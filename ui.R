@@ -28,7 +28,10 @@ fluidPage(
                         multiple = T),
             # submitButton("Update plot\n", icon("refresh")),
             
-            
+            # selectInput("Trade_Metric", "Metric",
+            #             choices = c('Difference', 'Ratio', 'Percentage_Gain'),
+            #             selected = 'ratio',
+            #             multiple = FALSE),
             selectInput("Team_1", "Team 1",
                         choices = nfl_draft_order$Team%>%unique()%>%sort(),
                         selected = 'CHI',
