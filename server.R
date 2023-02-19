@@ -104,7 +104,7 @@ function(input, output, session) {
         ggtitle('Pick # vs Draft value received')+
         theme(legend.position = c(0.85, 0.25), 
               legend.background = element_rect(fill = "white", colour = NA),
-              # plot.title = element_text(size = 15),
+              legend.title = element_blank(),
               text = element_text(size=20),
               axis.title=element_text(size=30),
               strip.text = element_text(size = 20),
