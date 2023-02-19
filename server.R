@@ -93,7 +93,8 @@ function(input, output, session) {
         geom_hline(yintercept = 1)+
         # geom_hline(yintercept = 0)+
         geom_smooth(se= FALSE, color = 'black')+
-        theme_bw()+
+        # theme_bw()+
+        theme_wsj(color = "gray")+
         facet_wrap(. ~ chart_type, scale = 'free')+
         labs(x = '\nPick number', 
              y= 'Expected % received in return\n')+
@@ -103,7 +104,9 @@ function(input, output, session) {
         theme(legend.position = c(0.85, 0.25), 
               legend.background = element_rect(fill = "white", colour = NA),
               legend.title = element_blank(),
-              text = element_text(size=20))+
+              text = element_text(size=20),
+              axis.title=element_text(size=20),
+              strip.text = element_text(size = 20))+
         scale_y_continuous(labels = scales::percent)
     })
 

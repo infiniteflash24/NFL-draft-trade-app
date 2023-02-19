@@ -32,6 +32,7 @@ fluidPage(
             #             choices = c('Difference', 'Ratio', 'Percentage_Gain'),
             #             selected = 'ratio',
             #             multiple = FALSE),
+            # textOutput("Suggested trade:\n"),
             selectInput("Team_1", "Team 1",
                         choices = nfl_draft_order$Team%>%unique()%>%sort(),
                         selected = 'CHI',

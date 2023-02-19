@@ -1,10 +1,11 @@
-setwd("~/NFL draft/NFL_draft_app")
+setwd("~/NFL draft/NFL-draft-trade-app")
 library(shiny)
 library(shinyWidgets)
 library(tidyverse)
 library(scales)
 library(latex2exp)
 library(sqldf)
+library(ggthemes)
 
 # the only tables we need
 
