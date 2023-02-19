@@ -101,13 +101,14 @@ function(input, output, session) {
              y= 'Expected % received\n')+
         # xlab(TeX('$Pick\.number$'))+
         # ylab(TeX('$E(Additional amount received in return)$'))+
-        # ggtitle('Pick_nun vs the E(Additional amount received) in return.')+
+        ggtitle('Pick # vs Draft value received')+
         theme(legend.position = c(0.85, 0.25), 
               legend.background = element_rect(fill = "white", colour = NA),
-              legend.title = element_blank(),
+              # plot.title = element_text(size = 15),
               text = element_text(size=20),
               axis.title=element_text(size=30),
-              strip.text = element_text(size = 20))+
+              strip.text = element_text(size = 20),
+              plot.title = element_text(size = 30))+
         scale_y_continuous(labels = scales::percent)
     })
     

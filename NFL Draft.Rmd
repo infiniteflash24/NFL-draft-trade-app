@@ -1,0 +1,342 @@
+---
+title: "NFL Draft"
+author: "InfiniteFlash"
+date: "2023-02-11"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_float: yes
+    df_print: paged
+---
+
+The purpose of this document to provide a template of how to evaluate draft trades given prior trade precedent set forth before. The data I use in this document originally comes from this link: https://github.com/nflverse/nfldata/blob/master/DATASETS.md
+
+# Data Import
+
+### Import packages
+
+Here are some basic packages to help wrangle & manipulate data.
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(sqldf)
+library(kableExtra)
+library(ggthemes)
+```
+
+### Import tables
+
+Below are some important draft related tables I use to understand the draft's history & trades.
+
+```{r, warning = FALSE, message= FALSE, cache=TRUE}
+# Import draft tables 
+trades <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/trades.csv")
+draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_picks.csv")
+draft_values <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_values.csv")
+
+# Idenfitifes whether a player is a QB or not
+draft_picks%>%
+select(pfr_id, position)%>%
+filter(!is.na(pfr_id), position == 'QB')%>%
+unique() -> pfr_positions
+
+```
+
+\newpage
+
+### Trades 
+
+```{r}
+trades%>%
+head()%>%
+kable()%>%
+kable_classic(full_width = F, html_font = "Cambria")%>%
+kable_styling(latex_options = 'hold_position')
+```
+
+The `trades` table contains all players and draft picks involved in all trades since 2002.
+
+### Draft selections 
+
+```{r}
+draft_picks%>%
+head()%>%
+kable()%>%
+kable_classic(full_width = F, html_font = "Cambria")%>%
+kable_styling(latex_options = 'hold_position')
+```
+
+The `draft_picks` table contains all draft pick selections since 1980.
+
+### Pick values 
+
+```{r}
+draft_values%>%
+head()%>%
+kable()%>%
+kable_classic(full_width = F, html_font = "Cambria")%>%
+kable_styling(latex_options = 'hold_position')
+```
+
+The `draft_values` table provides the estimated value contained within a given draft pick. 
+
+
+\newpage
+
+# Table creation
+
+So we've got 3 tables of historical draft history & values: now what?
+
+Let's define some criteria:
+
+- Trades involving players are difficult to quantity. For the sake of this project, I'm going to ignore all trades that involve 1 or more players. 
+- Future draft picks are valued a full round later than the current draft
+
+```{r, warning = FALSE, message= FALSE, cache=TRUE}
+
+# Building out a base table
+
+trade_value_base <- trades%>%
+group_by(trade_id)%>% 
+mutate(n = n(), draft_picks = ifelse(any(is.na(pick_season)), 0, n()))%>% 
+ungroup()%>%
+#future picks are evaluated a round later
+mutate(draft_pick_EV = ifelse(season != pick_season, (pick_round-1)*32+32, pick_number))%>% 
+#filter out trades with players
+filter(n == draft_picks)%>% 
+left_join(., draft_values, by = c("draft_pick_EV"="pick"))%>%
+left_join(., pfr_positions, by = c("pfr_id"="pfr_id"))%>%
+select(trade_id: pick_number, position, draft_pick_EV:pff)%>%
+mutate(position = ifelse(position == 'QB', 'QB', 'non-QB'))
+
+
+# Trade value given & received in all trades & value chart types
+
+trade_value_all <- trade_value_base%>%
+group_by(trade_id, gave, received)%>%
+summarise(stuart = sum(stuart),
+          johnson = sum(johnson),
+          hill = sum(hill),
+          otc = sum(otc),
+          pff = sum(pff))%>%
+gather(chart_type, amount, stuart:pff)
+
+# Gets information about the top pick traded in a given trade
+trade_value_base%>%
+group_by(trade_id)%>%
+filter(draft_pick_EV == min(draft_pick_EV))%>%
+select(trade_id, season, trade_date, gave, received, pick_number) -> information
+
+# Picks traded by each team concatenated
+trade_value_base%>%
+    group_by(trade_id, gave, received)%>%
+    summarise(trade_results = paste(sort(pick_number), collapse = ', ')) -> picks
+
+
+#Write tables out to sql. Not necessary as the SQL query below can be run via R code.
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = "NFL_draft.sqlite")
+dbWriteTable(con,"trade_value_all", trade_value_all, overwrite = TRUE)
+dbWriteTable(con,"trade_value_base", trade_value_base, overwrite = TRUE)
+dbWriteTable(con,"information", information, overwrite = TRUE)
+dbWriteTable(con,"picks", picks, overwrite = TRUE)
+dbWriteTable(con,"draft_picks", draft_picks, overwrite = TRUE)
+```
+
+\newpage
+
+### Build out summary set
+
+Below is combining all of the information above together.
+
+```{r, warning = FALSE, message= FALSE, cache=TRUE}
+query = "select a.trade_id, a.gave, a.received, a.chart_type, 
+         a.amount as amount_given,
+         b.amount as amount_received,
+         a.amount-b.amount as difference,
+         (a.amount-b.amount)/a.amount as given_percentage,
+         (a.amount-b.amount)/b.amount as received_percentage,
+         c.season, c.trade_date, c.pick_number, 
+         case when f.position = 'QB' then 'QB' 
+         else 'non-QB' end as position,
+         d.trade_results as given,
+         e.trade_results as offered,
+         f.pfr_name
+         from trade_value_all as a
+         left join trade_value_all as b on a.trade_id = b.trade_id and a.chart_type = b.chart_type and a.gave != b.gave
+         inner join information as c on a.trade_id = c.trade_id and a.gave = c.gave and a.received = c.received
+         inner join picks as d on a.trade_id = d.trade_id and a.gave = d.gave
+         inner join picks as e on a.trade_id = e.trade_id and a.gave = e.received
+         left join draft_picks as f on c.season = f.season and c.pick_number = f.pick
+         where b.amount > 0 and a.amount > 0
+         order by 1, a.chart_type
+        "
+summary_set <- sqldf(query)
+
+summary_set%>%
+head()%>%
+kable()%>%
+kable_classic(full_width = F, html_font = "Cambria")%>%
+kable_styling(latex_options = 'hold_position')
+```
+
+
+
+
+A few notes:
+
+- `amount_given` is the amount that the **gave** team traded away.
+- `amount_received` is the amount that the **gave** team received.
+- `difference` is the expected amount of value the **gave** team received.
+- `given_percentage` and `received_percentage` give an idea of how much value the **gave** and **received** teams got relative to the amount trade away.
+
+
+
+
+
+```{r,echo=FALSE}
+# write.csv(summary_set, 'draft_trade_evals.csv')
+# summary_set <- read.csv('draft_trade_evals.csv')
+```
+
+
+# Results: Draft history value
+
+```{r, warning = FALSE, message= FALSE, cache=TRUE}
+summary_set%>%
+mutate(chart_type = tools::toTitleCase(chart_type))%>%
+filter(pick_number <= 32, amount_received > 0, amount_given > 0
+       # , position %in% c('QB', 'non-QB')
+       # ,chart_type == 'hill'
+       )%>%
+# select(-position)%>%
+ggplot(aes(x = pick_number, y= amount_received/amount_given))+
+geom_point(size = 1.5, aes(size = 2, color = position, shape = position))+
+geom_vline(xintercept = 1)+
+geom_hline(yintercept = 1)+
+geom_smooth(se= FALSE,
+            color = 'black')+
+theme_wsj()+
+facet_wrap(. ~ chart_type, scale = 'free')+
+labs(x = '\nPick #',  y= 'Expected % received\n', title = 'Pick # vs Draft value received')+
+        theme(legend.position = c(0.85, 0.25), 
+              legend.background = element_rect(fill = "white", colour = NA),
+              text = element_text(size=10),
+              plot.title = element_text(size = 15),
+              axis.title=element_text(size=15),
+              legend.title = element_text(size = 10))+
+ scale_y_continuous(labels = scales::percent)
+```
+
+And guala, now we have a historical draft trade chart showing how much teams typically recoup when trading down. 
+
+`Non-QB` and `QB` represents if team trading up, picked a QB with the top pick being traded.
+
+It is nice to see the old trope of teams overpaying, when they pay for QB. Hence the cluster of QBs in the top left corner of each subplot.
+
+
+```{r, cache=TRUE, echo=FALSE, eval=FALSE}
+summary_set%>%
+filter(pick_number <= 16, amount_received > 0, amount_given > 0
+       , position != 'non-QB'
+       )%>%
+ggplot(aes(x = pick_number, y= amount_received/amount_given, color = position))+
+geom_point(size = 1.5)+
+geom_vline(xintercept = 1)+
+geom_hline(yintercept = 1)+
+# geom_smooth(se= FALSE, color = 'black')+
+theme_bw()+
+facet_wrap(. ~ chart_type, scale = 'free')+
+labs(x = '\nPick #', 
+     y = 'Additional amount received in return\n', 
+     title = 'Pick # (since 2011) vs the expected amount received in return.',
+     caption = '')+ 
+        theme(legend.position = c(0.85, 0.25), 
+              legend.background = element_rect(fill = "white", colour = NA),
+              legend.title = element_blank(),
+              text = element_text(size=20),
+              axis.title=element_text(size=30),
+              strip.text = element_text(size = 20))+
+```
+
+
+<!-- # Minimum references -->
+
+<!-- ```{r, cache=TRUE} -->
+<!-- summary_set%>% -->
+<!-- filter(pick_number <= 5, amount_received > 0, amount_given > 0, position == 'QB')%>% -->
+<!-- group_by(chart_type)%>% -->
+<!-- summarise(minimum = min(amount_received-amount_given)) -->
+<!-- ``` -->
+
+<!-- Based on this chart, I think it's reasonable to draw that teams trading down recoup most of the value. -->
+
+<!-- # Trade with Indy -->
+
+<!-- ```{r} -->
+<!-- draft_values%>% -->
+<!-- filter(pick %in% c(1, #Bears picks -->
+<!--                    4, 35, 79, 105, 138, 162, 222, 237, # Colts picks this year -->
+<!--                    16, 48, 80, 112, 144, 176 #Expected picks next year -->
+<!--                    )) -->
+<!-- ``` -->
+
+<!-- Based on the chart above, the expected minimum from a trade with the Colts would be: -->
+
+<!-- Trade Chart Type: **Expected Minimum Points** -->
+
+<!-- - Stuart: **`r 34.6 + 16.5` points** -->
+
+<!--      - 2023 1st (#4), 2023 3rd (#79), 2023 6th (#176) -->
+<!--      - 2024 1st (#16)  -->
+
+<!-- equals **`r 25.8+16.9+6.8+1.7`** -->
+
+<!-- - Johnson: **`r 3000+117` points** -->
+
+
+<!--      - 2023 1st (#4), 2023 3rd (#79), 2023 4th (#105), 2023 5th (#138) -->
+<!--      - 2024 1st (#16)  -->
+
+<!-- equals **`r 1800+1000+195+84+37`** -->
+
+<!-- - Hill: **`r 1000-44` points** -->
+
+<!--      - 2023 1st (#4), 2023 2nd (#79) -->
+<!--      - 2024 1st (#16)  -->
+
+<!-- equals **`r 490.52+305.41+170.37`** -->
+
+<!-- - OTC: **`r 3000+1784` points** -->
+
+<!--      - 2023 1st (#4), 2023 2nd (#79) -->
+<!--      - 2024 1st (#16)  -->
+
+<!-- equals **`r 2270+1540+1128`** -->
+
+<!-- - PFF: **`r 1.135+.674` points** -->
+
+<!--      - 2023 1st (#4), 2023 5th (#144) -->
+<!--      - 2024 1st (#16)  -->
+
+<!-- equals **`r 1.027+.66+.134`** -->
+
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- library(janitor) -->
+<!-- library(tools) -->
+
+<!-- draft_values[c(4, 35, 48, 48, 105), ]%>% -->
+<!-- mutate(pick = pick%>%as.character())%>% -->
+<!-- adorn_totals("row")%>% -->
+<!-- bind_rows(draft_values[c(1), ]%>%mutate(pick = pick%>%as.character()))%>% -->
+<!-- bind_rows(data.frame(pick = 'Minimum', stuart = 34.6+16.5, johnson = 3117, hill= 856, otc = 4784, pff = 1.809))%>% -->
+<!-- arrange(pick)%>% -->
+<!-- mutate(order = c(1,6 ,3 , 2, 4, 5, 7, 8))%>% -->
+<!-- arrange(order)%>% -->
+<!-- mutate(pick = ifelse(pick == 'Total', 'Discord suggested offer', pick))%>% -->
+<!-- magrittr::set_colnames(toTitleCase(colnames(.)))%>% -->
+<!-- kable() -->
+<!-- ``` -->
+
