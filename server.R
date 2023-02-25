@@ -3,7 +3,8 @@ function(input, output, session) {
   
   observe({
     updateSelectInput(session, "Team_1_picks", choices = nfl_draft_order%>%
-                        filter(Team == input$Team_1)%>%
+                        filter(Team == input$Team_1,
+                               future_pick %in% c('Not', input$Half_or_Full))%>%
                         .$Pick_Name%>%
                         sort()
     )
@@ -13,7 +14,8 @@ function(input, output, session) {
     updateSelectInput(session, 
                       "Team_2_picks", 
                       choices = nfl_draft_order%>%
-                      filter(Team == input$Team_2)%>%
+                      filter(Team == input$Team_2,
+                             future_pick %in% c('Not', input$Half_or_Full))%>%
                       .$Pick_Name%>%sort()
     )
   })
@@ -22,13 +24,15 @@ function(input, output, session) {
     output$distPlot <- renderPlot({
 
         nfl_draft_order%>%
-        filter(Team %in% c(input$Team_1, input$Team_2))%>%
+        filter(Team %in% c(input$Team_1, input$Team_2), 
+               future_pick %in% c('Not', input$Half_or_Full)
+               )%>%
         # filter(Team %in% c('CHI', 'IND'))
         transmute(Pick_number, 
                   gave = Team, 
                received = ifelse(gave == input$Team_1, input$Team_2, input$Team_1),
                # received = ifelse(Team == 'CHI', 'IND', 'CHI'),
-               Round, Year, stuart, johnson, hill, otc, pff, Pick_Name)%>%
+               Round, Year, stuart, johnson, hill, otc, pff, CBS, Pick_Name)%>%
         filter(Pick_Name %in% c(input$Team_1_picks, input$Team_2_picks))%>%
         mutate(trade_id = 40000)%>%
         group_by(trade_id, gave, received)%>%
@@ -37,10 +41,11 @@ function(input, output, session) {
                  hill = sum(hill),
                  otc = sum(otc),
                  pff = sum(pff),
+                 cbs = sum(CBS),
                  min_pick_ev = min(Pick_number),
                  trade_results = paste(sort(Pick_Name), collapse = ', '))%>%
         ungroup()%>%
-        gather(chart_type, amount, stuart:pff)%>%
+        gather(chart_type, amount, stuart:cbs)%>%
         left_join(., ., by = c("gave"="received", 
                                      "chart_type" = "chart_type"))%>%
         transmute(trade_id = trade_id.x,
@@ -72,7 +77,8 @@ function(input, output, session) {
                between(season, input$bins[1], input$bins[2]),
                # between(season, 2011, 2022),
                gave %in% input$Gave,
-               received %in% input$Received
+               received %in% input$Received,
+               future_pick %in% c('Not', input$Half_or_Full)
                )%>%
         bind_rows(suggested_trade)%>%
         mutate(Difference = -difference,
@@ -101,27 +107,32 @@ function(input, output, session) {
              y= 'Expected % received\n')+
         # xlab(TeX('$Pick\.number$'))+
         # ylab(TeX('$E(Additional amount received in return)$'))+
-        ggtitle('Pick # vs Draft value received')+
-        theme(legend.position = c(0.85, 0.25), 
+        ggtitle('\nPick # vs Draft value received\n\n')+
+        theme(legend.position = c(0.7, 1.25), 
               legend.background = element_rect(fill = "white", colour = NA),
               legend.title = element_blank(),
               text = element_text(size=20),
               axis.title=element_text(size=30),
               strip.text = element_text(size = 20),
-              plot.title = element_text(size = 30))+
+              plot.title = element_text(color="#993333", size=30, face="bold"),
+              axis.title.x = element_text(color="#993333", size=30, face="bold"),
+              axis.title.y = element_text(color="#993333", size=30, face="bold")
+              )+
         scale_y_continuous(labels = scales::percent)
     })
     
     output$data <- renderTable({
       
       nfl_draft_order%>%
-        filter(Team %in% c(input$Team_1, input$Team_2))%>%
+        filter(Team %in% c(input$Team_1, input$Team_2), 
+               future_pick %in% c('Not', input$Half_or_Full)
+              )%>%
         # filter(Team %in% c('CHI', 'IND'))
         transmute(Pick_number, 
                   gave = Team, 
                   received = ifelse(gave == input$Team_1, input$Team_2, input$Team_1),
                   # received = ifelse(Team == 'CHI', 'IND', 'CHI'),
-                  Round, Year, stuart, johnson, hill, otc, pff, Pick_Name)%>%
+                  Round, Year, stuart, johnson, hill, otc, pff, CBS, Pick_Name)%>%
         filter(Pick_Name %in% c(input$Team_1_picks, input$Team_2_picks))%>%
         mutate(trade_id = 40000)%>%
         group_by(trade_id, gave, received)%>%
@@ -130,10 +141,11 @@ function(input, output, session) {
                   hill = sum(hill),
                   otc = sum(otc),
                   pff = sum(pff),
+                  cbs = sum(CBS),
                   min_pick_ev = min(Pick_number),
                   trade_results = paste(sort(Pick_Name), collapse = ', '))%>%
         ungroup()%>%
-        gather(chart_type, amount, stuart:pff)%>%
+        gather(chart_type, amount, stuart:cbs)%>%
         left_join(., ., by = c("gave"="received", 
                                "chart_type" = "chart_type"))%>%
         transmute(trade_id = trade_id.x,
@@ -165,7 +177,8 @@ function(input, output, session) {
                between(season, input$bins[1], input$bins[2]),
                # between(season, 2011, 2022),
                gave %in% input$Gave,
-               received %in% input$Received
+               received %in% input$Received,
+               future_pick %in% c('Not', input$Half_or_Full)
         )%>%
         bind_rows(suggested_trade)%>%
         mutate(Difference = -difference,

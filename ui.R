@@ -62,6 +62,11 @@ fluidPage(
             tags$h2("Trade Scenario"),
             
             br(),
+            selectInput("Half_or_Full", "Future pick value: Half or Full round later?",
+                        choices = c('Half round later', 'Full round later'),
+                        selected = 'Full round later',
+                        multiple = FALSE
+                        ),
             selectInput("Team_1", "Team 1",
                         choices = nfl_draft_order$Team%>%unique()%>%sort(),
                         selected = 'CHI',

@@ -1,0 +1,14 @@
+name: NFL-draft-trade-app
+title: NFL-draft-trade-app
+username:
+account: infiniteflashchess
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8410629
+bundleId: 6887736
+url: https://infiniteflashchess.shinyapps.io/NFL-draft-trade-app/
+when: 1677359661.72769
+lastSyncTime: 1677359661.72769
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .gitattributes|.RData|NFL-Draft.log|NFL-Draft.pdf|NFL-Draft_files/figure-latex/unnamed-chunk-9-1.pdf|NFL Draft.Rmd|NFL_draft.sqlite
