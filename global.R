@@ -18,12 +18,13 @@ nfl_draft_order <- read.csv('NFLdraftorder2023_values.csv')%>%
                    mutate(Pick_Name = paste(Team, " ", Year, " ", ordinal(Round), " (#", Pick_number, ")", sep = ""))
 
 
+
 # Run to create draft_trade_evals.csv
 # cbs <- read.delim("~/NFL draft/NFL-draft-trade-app/cbs_trade_value.txt", header=FALSE)%>%
 #        transmute(pick = V1, CBS = V2)
 # draft_values <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_values.csv")%>%
 #                 left_join(., cbs, by = c("pick"="pick"))
-# draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_picks.csv")
+draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_picks.csv")
 # trades <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/trades.csv")
 # draft_picks%>%
 #   select(pfr_id, position)%>%
@@ -36,8 +37,8 @@ nfl_draft_order <- read.csv('NFLdraftorder2023_values.csv')%>%
 #   mutate(n = n(),
 #          draft_picks = ifelse(any(is.na(pick_season)), 0, n()))%>%
 #   ungroup()%>%
-#  # mutate(draft_pick_EV = ifelse(season != pick_season, (pick_round-1)*32+16, pick_number))%>%
-# mutate(draft_pick_EV = ifelse(season != pick_season, (pick_round-1)*32+32, pick_number))%>%
+#  mutate(draft_pick_EV = ifelse(season != pick_season, (pick_round-1)*32+16, pick_number))%>%
+# # mutate(draft_pick_EV = ifelse(season != pick_season, (pick_round-1)*32+32, pick_number))%>%
 #   filter(n == draft_picks)%>%
 #   left_join(., draft_values, by = c("draft_pick_EV"="pick"))%>%
 #   left_join(., pfr_positions, by = c("pfr_id"="pfr_id"))%>%
@@ -83,8 +84,8 @@ nfl_draft_order <- read.csv('NFLdraftorder2023_values.csv')%>%
 #          d.trade_results as given,
 #          e.trade_results as offered,
 #          f.pfr_name,
-#          'Full round later' as future_pick
-# --         'Half round later' as future_pick
+#  --        'Full round later' as future_pick
+#          'Half round later' as future_pick
 #          from trade_value_all as a
 #          left join trade_value_all as b on a.trade_id = b.trade_id and a.chart_type = b.chart_type and a.gave != b.gave
 #          inner join information as c on a.trade_id = c.trade_id and a.gave = c.gave and a.received = c.received
@@ -123,8 +124,8 @@ nfl_draft_order <- read.csv('NFLdraftorder2023_values.csv')%>%
 # left_join(., draft_values, by = c("Pick_number"="pick"))%>%
 # select(Pick_number, Team, Round, Year, stuart:CBS)%>%
 # write.csv(., "NFLdraftorder2023_values.csv", row.names = FALSE)
-#  
-# #  
+# 
+# 
 # teams = nfl_draft_order$Team%>%unique()
 # pick_num = c(16, 16+32, 16+64, 16+96, 16+128, 16+160, 16+192)
 # # pick_num = c(16, 16+32, 16+64, 16+96, 16+128, 16+160, 16+192)+16  #use this if you think teams value future picks a round later
