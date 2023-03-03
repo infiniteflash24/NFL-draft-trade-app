@@ -1,13 +1,18 @@
 # setwd("~/NFL draft/NFL-draft-trade-app")
+options(dplyr.summarise.inform = FALSE)
 library(shiny)
 library(shinyWidgets)
 library(tidyverse)
 library(scales)
-library(latex2exp)
+# library(latex2exp)
 library(sqldf)
 library(ggthemes)
-
+library(ggpubr)
 # the only tables we need
+
+#Issue with Kenechi Udeze appearing in trade 19 in data. Need to investigate why this is happening
+#"Query" is inaccurately looking into the past for player names here: https://www.prosportstransactions.com/football/DraftTrades/Years/2004.htm
+#Need to fix
 
 summary_set <- read.csv('draft_trade_evals.csv')%>%
                bind_rows(read.csv('draft_trade_evals_half_round_later.csv'))
@@ -16,15 +21,15 @@ nfl_draft_order <- read.csv('NFLdraftorder2023_values.csv')%>%
                    bind_rows(read.csv('NFLdraftorder2024_and_2025_values_half.csv'))%>%
                    bind_rows(read.csv('NFLdraftorder2024_and_2025_values_full.csv'))%>%
                    mutate(Pick_Name = paste(Team, " ", Year, " ", ordinal(Round), " (#", Pick_number, ")", sep = ""))
-
-
-
-# Run to create draft_trade_evals.csv
+# 
+# 
+# 
+# # Run to create draft_trade_evals.csv
 # cbs <- read.delim("~/NFL draft/NFL-draft-trade-app/cbs_trade_value.txt", header=FALSE)%>%
 #        transmute(pick = V1, CBS = V2)
 # draft_values <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_values.csv")%>%
 #                 left_join(., cbs, by = c("pick"="pick"))
-draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_picks.csv")
+# draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/draft_picks.csv")
 # trades <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/master/data/trades.csv")
 # draft_picks%>%
 #   select(pfr_id, position)%>%
@@ -60,11 +65,11 @@ draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/mas
 #   group_by(trade_id)%>%
 #   filter(draft_pick_EV == min(draft_pick_EV))%>%
 #   select(trade_id, season, trade_date, gave, received, pick_number) -> information
-# 
+# # 
 # trade_value_base%>%
 #   group_by(trade_id, gave, received)%>%
 #   summarise(trade_results = paste(sort(pick_number), collapse = ', ')) -> picks
-# 
+# # 
 # con <- DBI::dbConnect(RSQLite::SQLite(), dbname = "NFL_draft.sqlite")
 # dbWriteTable(con,"trade_value_all", trade_value_all, overwrite = TRUE)
 # dbWriteTable(con,"trade_value_base", trade_value_base, overwrite = TRUE)
@@ -138,3 +143,22 @@ draft_picks <- read_csv("https://raw.githubusercontent.com/leesharpe/nfldata/mas
 # write.csv(., "NFLdraftorder2024_and_2025_values_half.csv", row.names = FALSE)
 # mutate(future_pick = 'Full round later')%>%
 # write.csv(., "NFLdraftorder2024_and_2025_values_full.csv", row.names = FALSE)
+
+# 
+# summary_set%>%
+# filter(pick_number <= 32)%>%
+# group_by(season, chart_type)%>%
+# summarise(amount = mean(amount_received/amount_given),
+#           n = n())%>%
+# ggplot(aes(x = season, y= amount
+#            # , group = round, color = round
+#            ))+
+# geom_point()+
+# # geom_line()+
+# geom_smooth(se = FALSE, method='lm', formula= y~x)+
+# facet_wrap(.~chart_type, scale = 'free')+
+# theme_bw()+
+#   stat_cor(
+#     aes(label = paste(..r.label.., sep = "~`,`~")),
+#     # label.x = 3
+#   )

@@ -52,6 +52,11 @@ fluidPage(
                         selected = summary_set$received%>%unique(),
                         options = list(`actions-box` = TRUE),
                         multiple = T),
+            pickerInput("Position","Position", 
+                        choices = c('QB', 'non-QB', 'Suggested trade'),
+                        selected = c('QB', 'Suggested trade'),
+                        options = list(`actions-box` = TRUE),
+                        multiple = T),
             br(),
             # submitButton("Update plot\n", icon("refresh")),
             
@@ -64,7 +69,7 @@ fluidPage(
             br(),
             selectInput("Half_or_Full", "Future pick value: Half or Full round later?",
                         choices = c('Half round later', 'Full round later'),
-                        selected = 'Full round later',
+                        selected = 'Half round later',
                         multiple = FALSE
                         ),
             selectInput("Team_1", "Team 1",

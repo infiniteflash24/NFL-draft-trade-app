@@ -19,7 +19,7 @@ function(input, output, session) {
                       .$Pick_Name%>%sort()
     )
   })
-  
+
 
     output$distPlot <- renderPlot({
 
@@ -88,9 +88,13 @@ function(input, output, session) {
                # position = ifelse(trade_id == 1648, 'Jameson Williams trade', position)
                )%>%
         mutate(chart_type = tools::toTitleCase(chart_type))%>%
+        filter(position %in% input$Position)%>%
+        group_by(chart_type)%>%
+        mutate(avg = median(Ratio))%>%
         ggplot(aes(x = pick_number, 
                    # y = aes_string(input$Trade_Metric)
-                   y = Ratio
+                   y = Ratio,
+                   y_intercept = median(Ratio)
                    )
                )+
         geom_point(size = 3.5, aes(color = position, shape = position))+
@@ -98,11 +102,12 @@ function(input, output, session) {
         geom_vline(xintercept = 1)+
         geom_hline(yintercept = 1)+
         # geom_hline(yintercept = 0)+
-        geom_smooth(se= FALSE, color = 'black')+
+        geom_smooth(linetype=0, se= FALSE, color = 'black')+
         # theme_bw()+
         theme_wsj()+
         facet_wrap(. ~ chart_type, 
                    scale = 'free')+
+        geom_hline(aes(yintercept=avg, group = chart_type), colour="green")+
         labs(x = '\nPick #', 
              y= 'Expected % received\n')+
         # xlab(TeX('$Pick\.number$'))+
@@ -188,6 +193,7 @@ function(input, output, session) {
                # position = ifelse(trade_id == 1648, 'Jameson Williams trade', position)
         )%>%
         mutate(chart_type = tools::toTitleCase(chart_type))%>%
+        filter(position %in% input$Position)%>%
         # select(trade_id:amount_received, ratio, season:pfr_name)%>%
         brushedPoints(., input$plot_brush, xvar = "pick_number", yvar = "Ratio")
     })
